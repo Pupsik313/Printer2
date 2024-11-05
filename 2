@@ -1,0 +1,43 @@
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+
+local GAME_ID = 7239319209 -- Updated with the actual game ID
+
+local function onCharacterAdded(character)
+    local moneyPrinter = Workspace:FindFirstChild("Money Printer")
+    if moneyPrinter then
+        local proximityPrompt = moneyPrinter:FindFirstChildOfClass("ProximityPrompt")
+        if proximityPrompt then
+            character:MoveTo(moneyPrinter.Position)
+            proximityPrompt:InputHoldBegin()
+        end
+    else
+        -- Server hop logic
+        local success, servers = pcall(function()
+            return HttpService:JSONDecode(TeleportService:GetPlayerPlaceInstanceAsync(GAME_ID))
+        end)
+        
+        if success and servers then
+            for _, server in ipairs(servers) do
+                if server.Id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(GAME_ID, server.Id, Players.LocalPlayer)
+                    break
+                end
+            end
+        else
+            warn("No available servers to hop to or failed to retrieve server list.")
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(onCharacterAdded)
+end)
+
+for _, player in Players:GetPlayers() do
+    if player.Character then
+        onCharacterAdded(player.Character)
+    end
+end
